@@ -208,7 +208,7 @@
     <tr>
       <th>Done</th>
       <th>MM</th>
-      <th class="dist-col">Next</th>
+      <th class="dist-col">Leg</th>
       <th>Tags</th>
       <th>Location</th>
       <th>Runner</th>
@@ -334,6 +334,47 @@ const CHECKPOINTS = [
 ];
 
 const RUNNERS = ["", "Jacob", "Josh", "Aaron", "Darby"];
+
+// Parse a MM string to a numeric mile marker.
+// Handles "99.8", "≈66.6", "73.0 / 71.8", "77.0–75.0", "Marathon", "Big Pine Key", "Saddle Bunch"
+function parseMM(mmStr) {
+  if (typeof mmStr !== "string") return null;
+  let s = mmStr.replace(/[≈~]/g, "").trim();
+  // Range like "77.0–75.0" → take the higher (entry) marker so leg-distance still works downstream
+  const range = s.match(/(\d+\.?\d*)\s*[–\-]\s*(\d+\.?\d*)/);
+  if (range) return parseFloat(range[1]);
+  // "73.0 / 71.8" or "73.0 OR 71.8" → take first
+  const slash = s.match(/(\d+\.?\d*)\s*(?:\/|OR)\s*(\d+\.?\d*)/i);
+  if (slash) return parseFloat(slash[1]);
+  // Plain number
+  const num = s.match(/^(\d+\.?\d*)$/);
+  if (num) return parseFloat(num[1]);
+  return null; // "Marathon", "Big Pine Key", "Saddle Bunch"
+}
+
+// Compute leg miles for each pass-off row.
+// Leg = miles between the previous pass-off MM and this pass-off MM.
+// The 100-mile race START (MM 99.8) is leg 0.
+function computeLegMiles() {
+  const legs = {}; // index -> miles
+  let prevMM = null;
+  CHECKPOINTS.forEach((cp, i) => {
+    if (!cp.passoff) return;
+    const mm = parseMM(cp.mm);
+    if (mm === null) {
+      legs[i] = null;
+      return;
+    }
+    if (prevMM === null) {
+      legs[i] = 0; // start line
+    } else {
+      legs[i] = Math.max(0, +(prevMM - mm).toFixed(2)); // race counts MM down
+    }
+    prevMM = mm;
+  });
+  return legs;
+}
+const LEG_MILES = computeLegMiles();
 const STORE_KEY = "keys100_2026_state_v1";
 const TOKEN_KEY = "keys100_gh_token_v1";
 const REPO_OWNER = "jacobdorian53-web";
@@ -467,9 +508,11 @@ function render() {
 
   let doneCount = 0;
   const runnerCounts = { Jacob: 0, Josh: 0, Aaron: 0, Darby: 0 };
+  const runnerMiles  = { Jacob: 0, Josh: 0, Aaron: 0, Darby: 0 };
   let passoffCount = 0;
   let passoffDone = 0;
   let passoffAssigned = 0;
+  let assignedMiles = 0;
 
   CHECKPOINTS.forEach((cp, i) => {
     const s = state[i] || {};
@@ -477,7 +520,14 @@ function render() {
     if (cp.passoff && s.done) passoffDone++;
     if (cp.passoff && s.runner) passoffAssigned++;
     if (s.done) doneCount++;
-    if (s.runner && runnerCounts[s.runner] !== undefined && cp.passoff) runnerCounts[s.runner]++;
+    if (s.runner && runnerCounts[s.runner] !== undefined && cp.passoff) {
+      runnerCounts[s.runner]++;
+      const lm = LEG_MILES[i];
+      if (typeof lm === "number") {
+        runnerMiles[s.runner] += lm;
+        assignedMiles += lm;
+      }
+    }
 
     // filter
     if (filterRunner === "__unassigned" && s.runner) return;
@@ -511,10 +561,15 @@ function render() {
     tdMm.textContent = cp.mm;
     tr.appendChild(tdMm);
 
-    // dist
+    // dist (for pass-offs: show leg miles, the distance from prev pass-off; else original cp.dist)
     const tdDist = document.createElement("td");
     tdDist.className = "dist";
-    tdDist.textContent = cp.dist || "";
+    if (cp.passoff && typeof LEG_MILES[i] === "number") {
+      tdDist.textContent = LEG_MILES[i] === 0 ? "START" : LEG_MILES[i].toFixed(1) + " mi";
+      tdDist.title = "Leg distance from previous pass-off";
+    } else {
+      tdDist.textContent = cp.dist || "";
+    }
     tr.appendChild(tdDist);
 
     // tags
@@ -558,13 +613,14 @@ function render() {
   });
 
   // stats
+  const fmt = (n) => n.toFixed(1) + " mi";
   document.getElementById("stats").innerHTML = `
-    <span class="pill"><span class="swatch" style="background:#3b82f6"></span>${passoffAssigned}/${passoffCount} pass-offs assigned</span>
+    <span class="pill"><span class="swatch" style="background:#4f7cb8"></span>${passoffAssigned}/${passoffCount} legs · ${fmt(assignedMiles)}</span>
     <span class="pill"><span class="swatch" style="background:#94a3b8"></span>${passoffDone}/${passoffCount} done</span>
-    <span class="pill"><span class="swatch" style="background:var(--jacob)"></span>Jacob: ${runnerCounts.Jacob}</span>
-    <span class="pill"><span class="swatch" style="background:var(--josh)"></span>Josh: ${runnerCounts.Josh}</span>
-    <span class="pill"><span class="swatch" style="background:var(--aaron)"></span>Aaron: ${runnerCounts.Aaron}</span>
-    <span class="pill"><span class="swatch" style="background:var(--darby)"></span>Darby: ${runnerCounts.Darby}</span>
+    <span class="pill"><span class="swatch" style="background:var(--jacob)"></span>Jacob: ${runnerCounts.Jacob} · ${fmt(runnerMiles.Jacob)}</span>
+    <span class="pill"><span class="swatch" style="background:var(--josh)"></span>Josh: ${runnerCounts.Josh} · ${fmt(runnerMiles.Josh)}</span>
+    <span class="pill"><span class="swatch" style="background:var(--aaron)"></span>Aaron: ${runnerCounts.Aaron} · ${fmt(runnerMiles.Aaron)}</span>
+    <span class="pill"><span class="swatch" style="background:var(--darby)"></span>Darby: ${runnerCounts.Darby} · ${fmt(runnerMiles.Darby)}</span>
   `;
 }
 
