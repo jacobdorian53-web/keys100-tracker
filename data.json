@@ -1,5 +1,9 @@
 {
   "version": 1,
-  "updated": null,
-  "assignments": {}
+  "updated": "2026-05-11T23:48:03.770Z",
+  "assignments": {
+    "0": {
+      "runner": "Jacob"
+    }
+  }
 }
