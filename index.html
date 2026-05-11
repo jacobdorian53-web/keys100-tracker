@@ -119,6 +119,8 @@
   .tag.t-meetup { background: #2563eb; color: white; }
   .tag.t-timing { background: #ca8a04; color: white; }
   .tag.t-cross  { background: #dc2626; color: white; }
+  .tag.t-team   { background: #14b8a6; color: white; }
+  .tag.t-info   { background: #475569; color: white; }
   td.cb-cell { width: 40px; text-align: center; }
   td.cb-cell input { width: 18px; height: 18px; cursor: pointer; }
   td.runner-cell { width: 130px; }
@@ -174,9 +176,10 @@
   </span>
   <span class="filter">
     <select id="filterType">
-      <option value="">All checkpoints</option>
-      <option value="meetup">Meet-ups only</option>
-      <option value="timing">Timing mats only</option>
+      <option value="passoff">Pass-off spots only (39)</option>
+      <option value="meetup">All meet-ups (44)</option>
+      <option value="timing">Timing mats only (7)</option>
+      <option value="">Full course details (102)</option>
     </select>
   </span>
 </div>
@@ -196,118 +199,119 @@
 </table>
 
 <div class="legend">
-  <span class="tag t-meetup">MEET-UP</span> Official runner exchange / crew support location ·
-  <span class="tag t-timing">TIMING</span> Timing equipment / scoring mat ·
-  <span class="tag t-cross">CROSS</span> Cross highway ·
-  Blue rows = official meet-up, yellow rows = timing station.
-  State auto-saves to your browser (localStorage).
+  <span class="tag t-meetup">PASS-OFF</span> Legal runner exchange for 100-mile teams (39 total) ·
+  <span class="tag t-team">TEAM</span> Team-exchange-only spot (less crowded) ·
+  <span class="tag t-timing">TIMING</span> Timing mat ·
+  <span class="tag t-cross">CROSS</span> Highway crossing ·
+  <span class="tag t-info">CREW ONLY</span> Crew support only — not a runner exchange ·
+  State auto-saves to your browser (localStorage). Default view shows only the 39 pass-off spots — use the filter to see full course details.
 </div>
 
 <script>
 // Checkpoints sourced from the 2026 KEYS100 Race Guide "Course Details & Meet-Up Locations" (pages 14-18).
 const CHECKPOINTS = [
-  { mm: "99.8", dist: "2.2",      loc: "100 MILE RACES START — Key Largo Community Park, St. Croix Place (behind Divers Direct shopping center, next block south of Key Largo Holiday Inn)", meetup: true,  timing: false },
-  { mm: "99.8", dist: "",         loc: "Bathrooms at Key Largo Community Park open for use beginning at 4:30am", meetup: false, timing: false },
-  { mm: "99.6", dist: "",         loc: "CROSS HIGHWAY — .2 mile after start, runners cross US#1 at traffic light with Deputy Sheriff; then bike path in MEDIAN at CVS for next 3 miles", meetup: false, timing: false, cross: true },
-  { mm: "97.6", dist: "2.5/2.9",  loc: "Meet-up — ALL. Shell World and First State Bank. Use either lot in MEDIAN. QUIET (people live above Shell World).", meetup: true,  timing: false },
-  { mm: "96.5", dist: "",         loc: "CROSS HIGHWAY — Bike path ends in MEDIAN; runners cross to OCEAN side with Deputy Sheriff", meetup: false, timing: false, cross: true },
-  { mm: "95.1", dist: "3.6",      loc: "Team runner exchange ONLY — Park at FL Keys National Marine Sanctuary or Southeast Trailer Sales, BAY side. Cross with extreme caution.", meetup: true,  timing: false },
-  { mm: "94.7", dist: "3.2",      loc: "Individual crew support ONLY — J&M Scaffolding, OCEAN side. Portable toilet available for all participants.", meetup: true,  timing: false },
-  { mm: "92.4", dist: "",         loc: "Circle K, Dairy Queen, Mobile Gas in MEDIAN", meetup: false, timing: false },
-  { mm: "91.5", dist: "1.4",      loc: "Meet-up — ALL. Shopping center parking lot, BAY side. Park in LOT (not driveway/shoulder). Winn Dixie & Dunkin' Donuts nearby. CAREFULLY CROSS HIGHWAY AT LIGHT.", meetup: true,  timing: false },
-  { mm: "91.0", dist: "",         loc: "Tavernier Creek — runners cross bridge, then follow sidewalk onto service road. REMAIN ON SERVICE ROAD NEXT 4.3 MILES.", meetup: false, timing: false },
-  { mm: "90.1", dist: "2.4",      loc: "TIMING EQUIPMENT — Meet-up ALL. Coral Shores High School, OCEAN side. PARK IN SCHOOL LOT. Runners continue on Service Road. Portable toilets.", meetup: true,  timing: true },
-  { mm: "88.5", dist: "",         loc: "Marlin gas station and food store. Buy something to use bathrooms.", meetup: false, timing: false },
-  { mm: "88.3", dist: "",         loc: "Tom Thumb gas station and food store. Buy something to use bathrooms.", meetup: false, timing: false },
-  { mm: "87.7", dist: "Est. 2.7", loc: "Meet-up — ALL. Park on grass along service road, OCEAN side, across from Founders Park.", meetup: true,  timing: false },
-  { mm: "86.7", dist: "",         loc: "Service road ends after Village Montessori School sign (before Puerto Vallarta Mexican Restaurant). Runners move to highway shoulder, OCEAN side.", meetup: false, timing: false },
-  { mm: "85.7", dist: "",         loc: "Snake Creek bridge — runners and vehicles cross bridge onto service road at Hog Heaven sign, OCEAN side. Only drawbridge on course (opens on demand). OBEY BRIDGE COMMANDS IMMEDIATELY.", meetup: false, timing: false },
-  { mm: "85.0", dist: "Est. 4.8", loc: "Meet-up — ALL. Park where you can on grass along service road past Hog Heaven. Boat trailers may be parked. DO NOT ENTER Hog Heaven property.", meetup: true,  timing: false },
-  { mm: "84.0", dist: "",         loc: "Continue on service road behind Theater of the Sea to end, then left onto highway shoulder.", meetup: false, timing: false },
-  { mm: "84.0", dist: "",         loc: "Starbucks and Postcard Inn property on left. Buy something to use bathrooms.", meetup: false, timing: false },
-  { mm: "83.8", dist: "",         loc: "Cross Whale Harbor Channel bridge into Islamorada proper (Upper Matecumbe Key).", meetup: false, timing: false },
-  { mm: "83.0", dist: "",         loc: "RUNNERS STAY LEFT. RUN ON SERVICE ROAD — NOT ON MAIN HIGHWAY. Vehicles continue on main road until MM80.2 on BAY side.", meetup: false, timing: false },
-  { mm: "83.0", dist: "",         loc: "PUBLIX on BAY side. Main road. Bathrooms.", meetup: false, timing: false },
-  { mm: "82.8", dist: "",         loc: "CVS on BAY side, main road.", meetup: false, timing: false },
-  { mm: "82.2", dist: "",         loc: "Wendy's on OCEAN side, main road; many other businesses on both sides.", meetup: false, timing: false },
-  { mm: "82.2", dist: "",         loc: "Landmark — Islamorada Brewing & Distillery, OCEAN side. Race contributor.", meetup: false, timing: false },
-  { mm: "82.1", dist: "",         loc: "Landmark — Lorelei Restaurant and Cabana Bar, main road BAY side.", meetup: false, timing: false },
-  { mm: "81.9", dist: "",         loc: "Landmark — Hurricane Monument on OCEAN side, main road.", meetup: false, timing: false },
-  { mm: "81.8", dist: "",         loc: "Landmark — Cheeca Lodge & Spa on OCEAN side.", meetup: false, timing: false },
-  { mm: "81.5", dist: "",         loc: "World Wide Sportsman on BAY side, main road — bathrooms inside.", meetup: false, timing: false },
-  { mm: "81.5", dist: "",         loc: "Islamorada Fish Co. on BAY Side — outside entrances to bathrooms.", meetup: false, timing: false },
-  { mm: "81.4", dist: "",         loc: "Landmark — Green Turtle Inn. Continue running behind property on service road. Vehicles do NOT turn here. Continue to MM80.2.", meetup: false, timing: false },
-  { mm: "80.3", dist: "",         loc: "Midway Café. Good coffee, smoothies, food. Must buy something to use bathroom.", meetup: false, timing: false },
-  { mm: "80.2", dist: "Est. 3.2", loc: "CREW AND TEAM VEHICLES PARK HERE — Long drive-through on BAY side after Midway Café. CAREFULLY cross with Sheriff to meet/exchange runner on ocean side. Race toilets.", meetup: true,  timing: false },
-  { mm: "79.2", dist: "",         loc: "Landmark — Bud & Mary's Marina — before Tea Table Key bridge.", meetup: false, timing: false },
-  { mm: "79.0", dist: "",         loc: "Tea Table Key.", meetup: false, timing: false },
-  { mm: "78.5", dist: "",         loc: "Indian Key Fill.", meetup: false, timing: false },
-  { mm: "77.3", dist: "",         loc: "After Lignumvitae Ch. bridge — DO NOT ENTER Robbie's Marina property or entrance road under any circumstances.", meetup: false, timing: false },
-  { mm: "77.0", dist: "",         loc: "CROSS HIGHWAY — Runners carefully cross to BAY side service road/path with Deputy Sheriff approx. 1/4 mile past Robbie's Marina turn. Stay on BAY side next 5.2 miles.", meetup: false, timing: false, cross: true },
-  { mm: "77.0–75.0", dist: "Indiv: 2.0 or 3.2 / Teams: 4.2", loc: "Meet-up — ALL. Park off road on wide grass shoulder along highway, BAY side, between US#1 and running path. Suggest meeting close to MM77 and again close to MM75.", meetup: true,  timing: false },
-  { mm: "74.9", dist: "",         loc: "TIMING EQUIPMENT — Located immediately after Sandy Cove Avenue along bike path. NO RACE STAFF HERE. Race toilet near parked location near MM75.0.", meetup: false, timing: true },
-  { mm: "74.6", dist: "",         loc: "Gas station and store. Use bathrooms only if buying something.", meetup: false, timing: false },
-  { mm: "73.0 / 71.8", dist: "4.9 or 2.3", loc: "Individual runners ONLY — Two limited parking areas on BAY side: (1) just past Channel 2 pedestrian bridge, OR (2) at foot of Channel 5 bridge. All runners cross highway to OCEAN side with Deputy to begin Channel 5 bridge crossing.", meetup: true,  timing: false },
-  { mm: "70.8", dist: "2.7",      loc: "Team Exchange ONLY — At far end of Channel 5 bridge, in parking lot or on shoulder.", meetup: true,  timing: false },
-  { mm: "69.5", dist: "",         loc: "Sea Bird Marina — STAY CLEAR. DO NOT enter this property for ANY reason. Doing so = IMMEDIATE DQ.", meetup: false, timing: false },
-  { mm: "68.1", dist: "1.5",      loc: "Kwik Stop store, Layton — ALL. Can get crowded; cooperate! Don't block store entrance. Meet runner, then leave. Bathrooms inside (buy something). Overflow on BAY side, right of paved bike path.", meetup: true,  timing: false },
-  { mm: "67.4", dist: "",         loc: "Caution: Bike path tends to flood outside Long Key State Park. Move to road shoulder if sidewalk is under water.", meetup: false, timing: false },
-  { mm: "≈66.6", dist: "5.1",     loc: "Meet-up — ALL. Use off-road area and road shoulder, BAY side. CAREFULLY cross road to meet runner.", meetup: true,  timing: false },
-  { mm: "65.4 & 63.2", dist: "",  loc: "Note: Long Key bridge parking lots (both ends) are NOT available for runner meet-up.", meetup: false, timing: false },
-  { mm: "61.5", dist: "2.2",      loc: "Meet-up — ALL. Unpaved area on OCEAN side at far end of Conch Key just before Tom's Harbor Cut bridge.", meetup: true,  timing: false },
-  { mm: "61.2", dist: "[Option]", loc: "Meet-up — ALL. Unpaved area on Duck Key, OCEAN side.", meetup: true,  timing: false },
-  { mm: "60.8", dist: "[Option]", loc: "Meet-up — ALL. Unpaved area at far end of Duck Key just before Tom's Harbor Channel bridge, OCEAN side. Race portable toilets just before bridge.", meetup: true,  timing: false },
-  { mm: "59.1", dist: "",         loc: "TIMING EQUIPMENT — Approximate timing equipment location on OCEAN side at far end of Keys Cable Park. DO NOT ENTER Keys Cable Park property unless buying food at Bongo's Café.", meetup: false, timing: true },
-  { mm: "59.0", dist: "1.6 (team) / 3.6 (indiv.)", loc: "Meet-up — ALL. Park in right-of-way (rough service road) on BAY side ACROSS HIGHWAY from Keys Cable Park. Access at Dorset Drive past Cable Park entrance. Hard right U-turn and park facing north. CAREFULLY cross to meet/exchange runner.", meetup: true,  timing: false },
-  { mm: "58.3", dist: "",         loc: "CROSS HIGHWAY — Runners cross at Guava Drive to enter bike path (Hell's Tunnel). Stay on BAY side next 11 miles. Pedestrian bridges open through Marathon.", meetup: false, timing: false, cross: true },
-  { mm: "57.4", dist: "3.4",      loc: "Team Exchange ONLY — Park on Kyle Avenue on BAY side (NOT on highway shoulder). Meet runner proceeding through Hell's Tunnel.", meetup: true,  timing: false },
-  { mm: "55.4", dist: "1.4",      loc: "Individual Runners ONLY — Paved parking area on US#1 just after bike path emerges from trees and Hell's Tunnel.", meetup: true,  timing: false },
-  { mm: "54.0", dist: "1.3",      loc: "Meet-up — ALL. Paved lot near boat launch, BAY side.", meetup: true,  timing: false },
-  { mm: "Marathon", dist: "",     loc: "NOTE: Many commercial businesses in Marathon for food, fuel, supplies, bathrooms.", meetup: false, timing: false },
-  { mm: "52.7", dist: "2.7",      loc: "Meet-up — ALL. Beall's Shopping Center parking lot.", meetup: true,  timing: false },
-  { mm: "50.0", dist: "2.0–50M / 2.9–50M / 3.1–all 100M", loc: "TIMING EQUIPMENT & 50-MILE RACE START — Meet-up ALL (100-milers). Marathon Garden Club. Parking on site for 100-milers & teams. Bathrooms inside. 50-MILERS DO NOT PARK HERE — park in WINN DIXIE LOT only just north of traffic light, OCEAN side, then walk across at light to start.", meetup: true,  timing: true },
-  { mm: "48",   dist: "8.1",      loc: "50-Mile Teams ONLY — Exchange runners at Courtyard Hotel, lower parking spots only, Bay side, just after Turtle Hospital. Stay in Marathon until runner's expected arrival across bridge.", meetup: true,  timing: false },
-  { mm: "47.1", dist: "7.2",      loc: "50-Mile Individual Runners ONLY — Staffed WATER-ONLY stop along sidewalk before crossing bridge. Crews will NOT meet runners until far side of Seven Mile Bridge.", meetup: true,  timing: false },
-  { mm: "46.9", dist: "7.0",      loc: "100-MILERS ONLY (NO 50-milers) — Vehicles park at Isla Bella Marketplace on Knights Key Blvd., OCEAN side, past entrance to Isla Bella Resort. SIX RACE VEHICLES AT A TIME MAX. Drive to restaurant/other location in Marathon and WAIT an hour before driving across bridge.", meetup: true,  timing: false },
-  { mm: "46.9", dist: "",         loc: "CROSS HIGHWAY — Runners cross US#1 with Deputy near Knight's Key Blvd. before Seven Mile Bridge. Runners stay on OCEAN side next 40 miles.", meetup: false, timing: false, cross: true },
-  { mm: "39.9", dist: "",         loc: "Vehicles exit Seven Mile Bridge and must park in lot on BAY (right) side OR on BAY shoulder past entrance. NO PARKING on OCEAN side and NO PARKING in Veterans Park lot.", meetup: false, timing: false },
-  { mm: "39.9", dist: "4.7",      loc: "TIMING EQUIPMENT — Timing mat location. Runner meet-up may ONLY take place PAST driveway entrance to Veteran's Park. NO EXCHANGE/SUPPORT allowed between driveway and end of bridge. Portable toilets on site and down hill in Veteran's Park. Cross highway ONLY with Sheriff.", meetup: true,  timing: true },
-  { mm: "36.4", dist: "",         loc: "DO NOT STOP OR PARK NEAR entrance to Bahia Honda State Park. MEET RUNNER ON FAR SIDE OF BAHIA HONDA BRIDGE ONLY, OCEAN side. Runners must continue across to far side.", meetup: false, timing: false },
-  { mm: "35.2", dist: "4.2",      loc: "Meet-up — ALL. Meet runner at FAR SIDE of Bahia Honda Bridge at paved lot on OCEAN side. Portable race toilets. You are on Scout Key. If no room, continue 1/4 mile, turn right onto small road at 'Vehicles Only' sign and park down hill.", meetup: true,  timing: false },
+  { mm: "99.8", dist: "2.2", loc: "100 MILE RACES START — Key Largo Community Park, St. Croix Place (behind Divers Direct shopping center, next block south of Key Largo Holiday Inn)", meetup: true, timing: false, passoff: true },
+  { mm: "99.8", dist: "", loc: "Bathrooms at Key Largo Community Park open for use beginning at 4:30am", meetup: false, timing: false },
+  { mm: "99.6", dist: "", loc: "CROSS HIGHWAY — .2 mile after start, runners cross US#1 at traffic light with Deputy Sheriff; then bike path in MEDIAN at CVS for next 3 miles", meetup: false, timing: false, cross: true },
+  { mm: "97.6", dist: "2.5/2.9", loc: "Meet-up — ALL. Shell World and First State Bank. Use either lot in MEDIAN. QUIET (people live above Shell World).", meetup: true, timing: false, passoff: true },
+  { mm: "96.5", dist: "", loc: "CROSS HIGHWAY — Bike path ends in MEDIAN; runners cross to OCEAN side with Deputy Sheriff", meetup: false, timing: false, cross: true },
+  { mm: "95.1", dist: "3.6", loc: "Team runner exchange ONLY — Park at FL Keys National Marine Sanctuary or Southeast Trailer Sales, BAY side. Cross with extreme caution.", meetup: true, timing: false, passoff: true },
+  { mm: "94.7", dist: "3.2", loc: "Individual crew support ONLY — J&M Scaffolding, OCEAN side. Portable toilet available for all participants.", meetup: true, timing: false },
+  { mm: "92.4", dist: "", loc: "Circle K, Dairy Queen, Mobile Gas in MEDIAN", meetup: false, timing: false },
+  { mm: "91.5", dist: "1.4", loc: "Meet-up — ALL. Shopping center parking lot, BAY side. Park in LOT (not driveway/shoulder). Winn Dixie & Dunkin' Donuts nearby. CAREFULLY CROSS HIGHWAY AT LIGHT.", meetup: true, timing: false, passoff: true },
+  { mm: "91.0", dist: "", loc: "Tavernier Creek — runners cross bridge, then follow sidewalk onto service road. REMAIN ON SERVICE ROAD NEXT 4.3 MILES.", meetup: false, timing: false },
+  { mm: "90.1", dist: "2.4", loc: "TIMING EQUIPMENT — Meet-up ALL. Coral Shores High School, OCEAN side. PARK IN SCHOOL LOT. Runners continue on Service Road. Portable toilets.", meetup: true, timing: true, passoff: true },
+  { mm: "88.5", dist: "", loc: "Marlin gas station and food store. Buy something to use bathrooms.", meetup: false, timing: false },
+  { mm: "88.3", dist: "", loc: "Tom Thumb gas station and food store. Buy something to use bathrooms.", meetup: false, timing: false },
+  { mm: "87.7", dist: "Est. 2.7", loc: "Meet-up — ALL. Park on grass along service road, OCEAN side, across from Founders Park.", meetup: true, timing: false, passoff: true },
+  { mm: "86.7", dist: "", loc: "Service road ends after Village Montessori School sign (before Puerto Vallarta Mexican Restaurant). Runners move to highway shoulder, OCEAN side.", meetup: false, timing: false },
+  { mm: "85.7", dist: "", loc: "Snake Creek bridge — runners and vehicles cross bridge onto service road at Hog Heaven sign, OCEAN side. Only drawbridge on course (opens on demand). OBEY BRIDGE COMMANDS IMMEDIATELY.", meetup: false, timing: false },
+  { mm: "85.0", dist: "Est. 4.8", loc: "Meet-up — ALL. Park where you can on grass along service road past Hog Heaven. Boat trailers may be parked. DO NOT ENTER Hog Heaven property.", meetup: true, timing: false, passoff: true },
+  { mm: "84.0", dist: "", loc: "Continue on service road behind Theater of the Sea to end, then left onto highway shoulder.", meetup: false, timing: false },
+  { mm: "84.0", dist: "", loc: "Starbucks and Postcard Inn property on left. Buy something to use bathrooms.", meetup: false, timing: false },
+  { mm: "83.8", dist: "", loc: "Cross Whale Harbor Channel bridge into Islamorada proper (Upper Matecumbe Key).", meetup: false, timing: false },
+  { mm: "83.0", dist: "", loc: "RUNNERS STAY LEFT. RUN ON SERVICE ROAD — NOT ON MAIN HIGHWAY. Vehicles continue on main road until MM80.2 on BAY side.", meetup: false, timing: false },
+  { mm: "83.0", dist: "", loc: "PUBLIX on BAY side. Main road. Bathrooms.", meetup: false, timing: false },
+  { mm: "82.8", dist: "", loc: "CVS on BAY side, main road.", meetup: false, timing: false },
+  { mm: "82.2", dist: "", loc: "Wendy's on OCEAN side, main road; many other businesses on both sides.", meetup: false, timing: false },
+  { mm: "82.2", dist: "", loc: "Landmark — Islamorada Brewing & Distillery, OCEAN side. Race contributor.", meetup: false, timing: false },
+  { mm: "82.1", dist: "", loc: "Landmark — Lorelei Restaurant and Cabana Bar, main road BAY side.", meetup: false, timing: false },
+  { mm: "81.9", dist: "", loc: "Landmark — Hurricane Monument on OCEAN side, main road.", meetup: false, timing: false },
+  { mm: "81.8", dist: "", loc: "Landmark — Cheeca Lodge & Spa on OCEAN side.", meetup: false, timing: false },
+  { mm: "81.5", dist: "", loc: "World Wide Sportsman on BAY side, main road — bathrooms inside.", meetup: false, timing: false },
+  { mm: "81.5", dist: "", loc: "Islamorada Fish Co. on BAY Side — outside entrances to bathrooms.", meetup: false, timing: false },
+  { mm: "81.4", dist: "", loc: "Landmark — Green Turtle Inn. Continue running behind property on service road. Vehicles do NOT turn here. Continue to MM80.2.", meetup: false, timing: false },
+  { mm: "80.3", dist: "", loc: "Midway Café. Good coffee, smoothies, food. Must buy something to use bathroom.", meetup: false, timing: false },
+  { mm: "80.2", dist: "Est. 3.2", loc: "CREW AND TEAM VEHICLES PARK HERE — Long drive-through on BAY side after Midway Café. CAREFULLY cross with Sheriff to meet/exchange runner on ocean side. Race toilets.", meetup: true, timing: false, passoff: true },
+  { mm: "79.2", dist: "", loc: "Landmark — Bud & Mary's Marina — before Tea Table Key bridge.", meetup: false, timing: false },
+  { mm: "79.0", dist: "", loc: "Tea Table Key.", meetup: false, timing: false },
+  { mm: "78.5", dist: "", loc: "Indian Key Fill.", meetup: false, timing: false },
+  { mm: "77.3", dist: "", loc: "After Lignumvitae Ch. bridge — DO NOT ENTER Robbie's Marina property or entrance road under any circumstances.", meetup: false, timing: false },
+  { mm: "77.0", dist: "", loc: "CROSS HIGHWAY — Runners carefully cross to BAY side service road/path with Deputy Sheriff approx. 1/4 mile past Robbie's Marina turn. Stay on BAY side next 5.2 miles.", meetup: false, timing: false, cross: true },
+  { mm: "77.0–75.0", dist: "Indiv: 2.0 or 3.2 / Teams: 4.2", loc: "Meet-up — ALL. Park off road on wide grass shoulder along highway, BAY side, between US#1 and running path. Suggest meeting close to MM77 and again close to MM75.", meetup: true, timing: false, passoff: true },
+  { mm: "74.9", dist: "", loc: "TIMING EQUIPMENT — Located immediately after Sandy Cove Avenue along bike path. NO RACE STAFF HERE. Race toilet near parked location near MM75.0.", meetup: false, timing: true },
+  { mm: "74.6", dist: "", loc: "Gas station and store. Use bathrooms only if buying something.", meetup: false, timing: false },
+  { mm: "73.0 / 71.8", dist: "4.9 or 2.3", loc: "Individual runners ONLY — Two limited parking areas on BAY side: (1) just past Channel 2 pedestrian bridge, OR (2) at foot of Channel 5 bridge. All runners cross highway to OCEAN side with Deputy to begin Channel 5 bridge crossing.", meetup: true, timing: false },
+  { mm: "70.8", dist: "2.7", loc: "Team Exchange ONLY — At far end of Channel 5 bridge, in parking lot or on shoulder.", meetup: true, timing: false, passoff: true },
+  { mm: "69.5", dist: "", loc: "Sea Bird Marina — STAY CLEAR. DO NOT enter this property for ANY reason. Doing so = IMMEDIATE DQ.", meetup: false, timing: false },
+  { mm: "68.1", dist: "1.5", loc: "Kwik Stop store, Layton — ALL. Can get crowded; cooperate! Don't block store entrance. Meet runner, then leave. Bathrooms inside (buy something). Overflow on BAY side, right of paved bike path.", meetup: true, timing: false, passoff: true },
+  { mm: "67.4", dist: "", loc: "Caution: Bike path tends to flood outside Long Key State Park. Move to road shoulder if sidewalk is under water.", meetup: false, timing: false },
+  { mm: "≈66.6", dist: "5.1", loc: "Meet-up — ALL. Use off-road area and road shoulder, BAY side. CAREFULLY cross road to meet runner.", meetup: true, timing: false, passoff: true },
+  { mm: "65.4 & 63.2", dist: "", loc: "Note: Long Key bridge parking lots (both ends) are NOT available for runner meet-up.", meetup: false, timing: false },
+  { mm: "61.5", dist: "2.2", loc: "Meet-up — ALL. Unpaved area on OCEAN side at far end of Conch Key just before Tom's Harbor Cut bridge.", meetup: true, timing: false, passoff: true },
+  { mm: "61.2", dist: "[Option]", loc: "Meet-up — ALL. Unpaved area on Duck Key, OCEAN side.", meetup: true, timing: false, passoff: true },
+  { mm: "60.8", dist: "[Option]", loc: "Meet-up — ALL. Unpaved area at far end of Duck Key just before Tom's Harbor Channel bridge, OCEAN side. Race portable toilets just before bridge.", meetup: true, timing: false, passoff: true },
+  { mm: "59.1", dist: "", loc: "TIMING EQUIPMENT — Approximate timing equipment location on OCEAN side at far end of Keys Cable Park. DO NOT ENTER Keys Cable Park property unless buying food at Bongo's Café.", meetup: false, timing: true },
+  { mm: "59.0", dist: "1.6 (team) / 3.6 (indiv.)", loc: "Meet-up — ALL. Park in right-of-way (rough service road) on BAY side ACROSS HIGHWAY from Keys Cable Park. Access at Dorset Drive past Cable Park entrance. Hard right U-turn and park facing north. CAREFULLY cross to meet/exchange runner.", meetup: true, timing: false, passoff: true },
+  { mm: "58.3", dist: "", loc: "CROSS HIGHWAY — Runners cross at Guava Drive to enter bike path (Hell's Tunnel). Stay on BAY side next 11 miles. Pedestrian bridges open through Marathon.", meetup: false, timing: false, cross: true },
+  { mm: "57.4", dist: "3.4", loc: "Team Exchange ONLY — Park on Kyle Avenue on BAY side (NOT on highway shoulder). Meet runner proceeding through Hell's Tunnel.", meetup: true, timing: false, passoff: true },
+  { mm: "55.4", dist: "1.4", loc: "Individual Runners ONLY — Paved parking area on US#1 just after bike path emerges from trees and Hell's Tunnel.", meetup: true, timing: false },
+  { mm: "54.0", dist: "1.3", loc: "Meet-up — ALL. Paved lot near boat launch, BAY side.", meetup: true, timing: false, passoff: true },
+  { mm: "Marathon", dist: "", loc: "NOTE: Many commercial businesses in Marathon for food, fuel, supplies, bathrooms.", meetup: false, timing: false },
+  { mm: "52.7", dist: "2.7", loc: "Meet-up — ALL. Beall's Shopping Center parking lot.", meetup: true, timing: false, passoff: true },
+  { mm: "50.0", dist: "2.0–50M / 2.9–50M / 3.1–all 100M", loc: "TIMING EQUIPMENT & 50-MILE RACE START — Meet-up ALL (100-milers). Marathon Garden Club. Parking on site for 100-milers & teams. Bathrooms inside. 50-MILERS DO NOT PARK HERE — park in WINN DIXIE LOT only just north of traffic light, OCEAN side, then walk across at light to start.", meetup: true, timing: true, passoff: true },
+  { mm: "48", dist: "8.1", loc: "50-Mile Teams ONLY — Exchange runners at Courtyard Hotel, lower parking spots only, Bay side, just after Turtle Hospital. Stay in Marathon until runner's expected arrival across bridge.", meetup: true, timing: false },
+  { mm: "47.1", dist: "7.2", loc: "50-Mile Individual Runners ONLY — Staffed WATER-ONLY stop along sidewalk before crossing bridge. Crews will NOT meet runners until far side of Seven Mile Bridge.", meetup: true, timing: false },
+  { mm: "46.9", dist: "7.0", loc: "100-MILERS ONLY (NO 50-milers) — Vehicles park at Isla Bella Marketplace on Knights Key Blvd., OCEAN side, past entrance to Isla Bella Resort. SIX RACE VEHICLES AT A TIME MAX. Drive to restaurant/other location in Marathon and WAIT an hour before driving across bridge.", meetup: true, timing: false, passoff: true },
+  { mm: "46.9", dist: "", loc: "CROSS HIGHWAY — Runners cross US#1 with Deputy near Knight's Key Blvd. before Seven Mile Bridge. Runners stay on OCEAN side next 40 miles.", meetup: false, timing: false, cross: true },
+  { mm: "39.9", dist: "", loc: "Vehicles exit Seven Mile Bridge and must park in lot on BAY (right) side OR on BAY shoulder past entrance. NO PARKING on OCEAN side and NO PARKING in Veterans Park lot.", meetup: false, timing: false },
+  { mm: "39.9", dist: "4.7", loc: "TIMING EQUIPMENT — Timing mat location. Runner meet-up may ONLY take place PAST driveway entrance to Veteran's Park. NO EXCHANGE/SUPPORT allowed between driveway and end of bridge. Portable toilets on site and down hill in Veteran's Park. Cross highway ONLY with Sheriff.", meetup: true, timing: true, passoff: true },
+  { mm: "36.4", dist: "", loc: "DO NOT STOP OR PARK NEAR entrance to Bahia Honda State Park. MEET RUNNER ON FAR SIDE OF BAHIA HONDA BRIDGE ONLY, OCEAN side. Runners must continue across to far side.", meetup: false, timing: false },
+  { mm: "35.2", dist: "4.2", loc: "Meet-up — ALL. Meet runner at FAR SIDE of Bahia Honda Bridge at paved lot on OCEAN side. Portable race toilets. You are on Scout Key. If no room, continue 1/4 mile, turn right onto small road at 'Vehicles Only' sign and park down hill.", meetup: true, timing: false, passoff: true },
   { mm: "Big Pine Key", dist: "", loc: "Entering Key Deer protected habitat; endangered species. DO NOT EXCEED SPEED LIMIT on Big Pine Key. Watch for small deer walking along the road.", meetup: false, timing: false },
-  { mm: "31.0", dist: "2.6",      loc: "Meet-up — ALL. Lower Keys Chamber of Commerce property on OCEAN side. Bathrooms. (Location of 50-kilometer race start.)", meetup: true,  timing: false },
-  { mm: "30.4", dist: "",         loc: "Tom Thumb gas station and store. Open all night.", meetup: false, timing: false },
-  { mm: "28.4", dist: "2.2",      loc: "Meet-up — ALL. Barry Avenue on BAY side — turn right and another immediate right into open space (dirt area) between building and US#1. You are on Little Torch Key. DO NOT PARK ON US#1 SHOULDER.", meetup: true,  timing: false },
-  { mm: "26.2", dist: "1.3",      loc: "Meet-up — ALL. Parking area at entrance to Niles Channel Bridge, OCEAN side.", meetup: true,  timing: false },
-  { mm: "24.9", dist: "1.2",      loc: "TIMING EQUIPMENT — Meet-up ALL. Parking at Summerland Dental or along W. Shore Dr. Do not block store entrance or fuel pumps. Portable toilets.", meetup: true,  timing: true },
-  { mm: "23.7", dist: ".9 or 2.7",loc: "Meet-up — ALL. Parking area before Kemp Channel, OCEAN side; pedestrian bridge open.", meetup: true,  timing: false },
-  { mm: "22.8", dist: "1.8",      loc: "[Paired with next] Meet-up — ALL — 4:30pm Saturday until 7:00am Sunday ONLY: Morning Joint coffee shop, OCEAN side, Cudjoe Key.", meetup: true,  timing: false },
-  { mm: "21.0", dist: "2.2",      loc: "[Paired with prior] Meet-up — ALL — Until 4:30pm Saturday and after 7:00am Sunday ONLY: Vacant lot to the right of Sheriff's sub-station, OCEAN side, Cudjoe Key. Turn left on Drost Drive, then 1st right on 1st Ave. W, to far side of Sheriff's office.", meetup: true,  timing: false },
-  { mm: "21.3", dist: "",         loc: "DO NOT enter Kickin' Back Food Mart property.", meetup: false, timing: false },
-  { mm: "20.5", dist: "",         loc: "Bow Channel pedestrian bridge open.", meetup: false, timing: false },
-  { mm: "20.0", dist: "",         loc: "Portable race toilets on OCEAN side across from Mangrove Mama's.", meetup: false, timing: false },
-  { mm: "18.8", dist: "1.9",      loc: "Meet-up — ALL. Park Channel pedestrian bridge is open. Large lots at both ends of bridge, OCEAN side.", meetup: true,  timing: false },
-  { mm: "16.9", dist: "2.0",      loc: "Meet-up — ALL. Sugarloaf Lodge Motel, BAY side. PARK IN LOT AT FAR END OF PROPERTY, WELL PAST MOTEL OFFICE. QUIET AT NIGHT.", meetup: true,  timing: false },
-  { mm: "15.6", dist: "",         loc: "Lower Sugarloaf Channel pedestrian bridge is closed.", meetup: false, timing: false },
-  { mm: "14.9", dist: "2.0",      loc: "Meet-up — ALL. Baby's Coffee. Portable toilets. DO NOT enter store or use store bathroom unless buying something.", meetup: true,  timing: false },
+  { mm: "31.0", dist: "2.6", loc: "Meet-up — ALL. Lower Keys Chamber of Commerce property on OCEAN side. Bathrooms. (Location of 50-kilometer race start.)", meetup: true, timing: false, passoff: true },
+  { mm: "30.4", dist: "", loc: "Tom Thumb gas station and store. Open all night.", meetup: false, timing: false },
+  { mm: "28.4", dist: "2.2", loc: "Meet-up — ALL. Barry Avenue on BAY side — turn right and another immediate right into open space (dirt area) between building and US#1. You are on Little Torch Key. DO NOT PARK ON US#1 SHOULDER.", meetup: true, timing: false, passoff: true },
+  { mm: "26.2", dist: "1.3", loc: "Meet-up — ALL. Parking area at entrance to Niles Channel Bridge, OCEAN side.", meetup: true, timing: false, passoff: true },
+  { mm: "24.9", dist: "1.2", loc: "TIMING EQUIPMENT — Meet-up ALL. Parking at Summerland Dental or along W. Shore Dr. Do not block store entrance or fuel pumps. Portable toilets.", meetup: true, timing: true, passoff: true },
+  { mm: "23.7", dist: ".9 or 2.7", loc: "Meet-up — ALL. Parking area before Kemp Channel, OCEAN side; pedestrian bridge open.", meetup: true, timing: false, passoff: true },
+  { mm: "22.8", dist: "1.8", loc: "[Paired with next] Meet-up — ALL — 4:30pm Saturday until 7:00am Sunday ONLY: Morning Joint coffee shop, OCEAN side, Cudjoe Key.", meetup: true, timing: false, passoff: true },
+  { mm: "21.0", dist: "2.2", loc: "[Paired with prior] Meet-up — ALL — Until 4:30pm Saturday and after 7:00am Sunday ONLY: Vacant lot to the right of Sheriff's sub-station, OCEAN side, Cudjoe Key. Turn left on Drost Drive, then 1st right on 1st Ave. W, to far side of Sheriff's office.", meetup: true, timing: false, passoff: true },
+  { mm: "21.3", dist: "", loc: "DO NOT enter Kickin' Back Food Mart property.", meetup: false, timing: false },
+  { mm: "20.5", dist: "", loc: "Bow Channel pedestrian bridge open.", meetup: false, timing: false },
+  { mm: "20.0", dist: "", loc: "Portable race toilets on OCEAN side across from Mangrove Mama's.", meetup: false, timing: false },
+  { mm: "18.8", dist: "1.9", loc: "Meet-up — ALL. Park Channel pedestrian bridge is open. Large lots at both ends of bridge, OCEAN side.", meetup: true, timing: false, passoff: true },
+  { mm: "16.9", dist: "2.0", loc: "Meet-up — ALL. Sugarloaf Lodge Motel, BAY side. PARK IN LOT AT FAR END OF PROPERTY, WELL PAST MOTEL OFFICE. QUIET AT NIGHT.", meetup: true, timing: false, passoff: true },
+  { mm: "15.6", dist: "", loc: "Lower Sugarloaf Channel pedestrian bridge is closed.", meetup: false, timing: false },
+  { mm: "14.9", dist: "2.0", loc: "Meet-up — ALL. Baby's Coffee. Portable toilets. DO NOT enter store or use store bathroom unless buying something.", meetup: true, timing: false, passoff: true },
   { mm: "Saddle Bunch", dist: "", loc: "Saddle Bunch #2, #3, #4 and #5 pedestrian bridges are all open.", meetup: false, timing: false },
-  { mm: "12.9", dist: "2.1",      loc: "Meet-up — ALL. Parking area before Saddle Bunch #5 bridge, OCEAN side.", meetup: true,  timing: false },
-  { mm: "11.9", dist: "",         loc: "Shark Channel pedestrian bridge is closed.", meetup: false, timing: false },
-  { mm: "10.8", dist: "2.7",      loc: "TIMING EQUIPMENT — Meet-up ALL. Timing equipment on sidewalk. Circle K Shell. Bathrooms inside (buy something).", meetup: true,  timing: true },
-  { mm: "9.8",  dist: "",         loc: "Rockland Channel pedestrian bridge is open.", meetup: false, timing: false },
-  { mm: "8.1",  dist: "3.1",      loc: "Meet-up — ALL. Meet runners on OCEAN side just north of Naval Air Station entrance and overpass. Vehicles take NAS exit on right at start of overpass. Cross under highway, turn left (northbound). Park north of turn along right shoulder. After meet-up, U-turn where safe to continue toward Key West.", meetup: true,  timing: false },
-  { mm: "8.1",  dist: "",         loc: "Runners note: At Naval Air Station bridge, runners do NOT use highway overpass. Continue on sidewalk and shoulder below and to the left of bridge.", meetup: false, timing: false },
-  { mm: "6.1",  dist: "",         loc: "CROSS UNDER HWY — Runners continue on pedestrian sidewalk, proceeding UNDER US#1 to BAY side. Continue on bike path on BAY side up to light at 'T' intersection (at traffic light) in Key West.", meetup: false, timing: false, cross: true },
-  { mm: "5.0",  dist: "2.9",      loc: "Meet-up — ALL. Park in GRAVEL area only between Shell station and bike path at Key Haven Blvd. DO NOT park on gas station property — even after closing or at night. Limited parking. Move promptly.", meetup: true,  timing: false },
-  { mm: "4.9",  dist: "",         loc: "CVS on Ocean side.", meetup: false, timing: false },
-  { mm: "4.0",  dist: "",         loc: "Traffic light at College Road (west end of loop road). Vehicles get in left lane.", meetup: false, timing: false },
-  { mm: "3.9",  dist: "",         loc: "Cross small Cow Channel bridge.", meetup: false, timing: false },
-  { mm: "3.8",  dist: "",         loc: "CROSS RD AT LIGHT — Runners turn LEFT at traffic light at 'T' in Key West, crossing US#1 with the light onto South Roosevelt sidewalk on OCEAN side. Disregard further MM signs — they are inaccurate. Approx. 3.8 miles remain to finish line.", meetup: false, timing: false, cross: true },
-  { mm: "2.1",  dist: "2.1",      loc: "Martello Tower East at KW Airport — Pines Park lot just past brick Tower structure. Park as marked on pavement. THIS IS LAST LOCATION TO MEET OR EXCHANGE RUNNERS in Key West.", meetup: true,  timing: false },
-  { mm: "1.0",  dist: "",         loc: "Smathers Beach bathrooms during daylight hours (two blue buildings).", meetup: false, timing: false },
-  { mm: "0.8",  dist: "",         loc: "At end of S. Roosevelt continue on sidewalk, turning right onto Bertha Street for one block.", meetup: false, timing: false },
-  { mm: "0.6",  dist: "",         loc: "1st left onto Atlantic Blvd. Proceed to finish line at Higgs Beach. Vehicle: park near finish line. Meet runner at White Street intersection (blinking light) to run together final 250 yards to finish.", meetup: false, timing: false },
-  { mm: "0",    dist: "Done!",    loc: "FINISH LINE — Higgs Beach, Key West.", meetup: true,  timing: false },
+  { mm: "12.9", dist: "2.1", loc: "Meet-up — ALL. Parking area before Saddle Bunch #5 bridge, OCEAN side.", meetup: true, timing: false, passoff: true },
+  { mm: "11.9", dist: "", loc: "Shark Channel pedestrian bridge is closed.", meetup: false, timing: false },
+  { mm: "10.8", dist: "2.7", loc: "TIMING EQUIPMENT — Meet-up ALL. Timing equipment on sidewalk. Circle K Shell. Bathrooms inside (buy something).", meetup: true, timing: true, passoff: true },
+  { mm: "9.8", dist: "", loc: "Rockland Channel pedestrian bridge is open.", meetup: false, timing: false },
+  { mm: "8.1", dist: "3.1", loc: "Meet-up — ALL. Meet runners on OCEAN side just north of Naval Air Station entrance and overpass. Vehicles take NAS exit on right at start of overpass. Cross under highway, turn left (northbound). Park north of turn along right shoulder. After meet-up, U-turn where safe to continue toward Key West.", meetup: true, timing: false, passoff: true },
+  { mm: "8.1", dist: "", loc: "Runners note: At Naval Air Station bridge, runners do NOT use highway overpass. Continue on sidewalk and shoulder below and to the left of bridge.", meetup: false, timing: false },
+  { mm: "6.1", dist: "", loc: "CROSS UNDER HWY — Runners continue on pedestrian sidewalk, proceeding UNDER US#1 to BAY side. Continue on bike path on BAY side up to light at 'T' intersection (at traffic light) in Key West.", meetup: false, timing: false, cross: true },
+  { mm: "5.0", dist: "2.9", loc: "Meet-up — ALL. Park in GRAVEL area only between Shell station and bike path at Key Haven Blvd. DO NOT park on gas station property — even after closing or at night. Limited parking. Move promptly.", meetup: true, timing: false, passoff: true },
+  { mm: "4.9", dist: "", loc: "CVS on Ocean side.", meetup: false, timing: false },
+  { mm: "4.0", dist: "", loc: "Traffic light at College Road (west end of loop road). Vehicles get in left lane.", meetup: false, timing: false },
+  { mm: "3.9", dist: "", loc: "Cross small Cow Channel bridge.", meetup: false, timing: false },
+  { mm: "3.8", dist: "", loc: "CROSS RD AT LIGHT — Runners turn LEFT at traffic light at 'T' in Key West, crossing US#1 with the light onto South Roosevelt sidewalk on OCEAN side. Disregard further MM signs — they are inaccurate. Approx. 3.8 miles remain to finish line.", meetup: false, timing: false, cross: true },
+  { mm: "2.1", dist: "2.1", loc: "Martello Tower East at KW Airport — Pines Park lot just past brick Tower structure. Park as marked on pavement. THIS IS LAST LOCATION TO MEET OR EXCHANGE RUNNERS in Key West.", meetup: true, timing: false, passoff: true },
+  { mm: "1.0", dist: "", loc: "Smathers Beach bathrooms during daylight hours (two blue buildings).", meetup: false, timing: false },
+  { mm: "0.8", dist: "", loc: "At end of S. Roosevelt continue on sidewalk, turning right onto Bertha Street for one block.", meetup: false, timing: false },
+  { mm: "0.6", dist: "", loc: "1st left onto Atlantic Blvd. Proceed to finish line at Higgs Beach. Vehicle: park near finish line. Meet runner at White Street intersection (blinking light) to run together final 250 yards to finish.", meetup: false, timing: false },
+  { mm: "0", dist: "Done!", loc: "FINISH LINE — Higgs Beach, Key West.", meetup: true, timing: false, passoff: true },
 ];
 
 const RUNNERS = ["", "Jacob", "Josh", "Aaron", "Darby"];
@@ -330,19 +334,24 @@ function render() {
 
   let doneCount = 0;
   const runnerCounts = { Jacob: 0, Josh: 0, Aaron: 0, Darby: 0 };
-  let meetupCount = 0;
+  let passoffCount = 0;
+  let passoffDone = 0;
+  let passoffAssigned = 0;
 
   CHECKPOINTS.forEach((cp, i) => {
     const s = state[i] || {};
-    if (cp.meetup) meetupCount++;
+    if (cp.passoff) passoffCount++;
+    if (cp.passoff && s.done) passoffDone++;
+    if (cp.passoff && s.runner) passoffAssigned++;
     if (s.done) doneCount++;
-    if (s.runner && runnerCounts[s.runner] !== undefined) runnerCounts[s.runner]++;
+    if (s.runner && runnerCounts[s.runner] !== undefined && cp.passoff) runnerCounts[s.runner]++;
 
     // filter
     if (filterRunner === "__unassigned" && s.runner) return;
     if (filterRunner && filterRunner !== "__unassigned" && s.runner !== filterRunner) return;
     if (filterType === "meetup" && !cp.meetup) return;
     if (filterType === "timing" && !cp.timing) return;
+    if (filterType === "passoff" && !cp.passoff) return;
 
     const tr = document.createElement("tr");
     if (cp.meetup) tr.classList.add("meetup");
@@ -378,7 +387,10 @@ function render() {
     // tags
     const tdTags = document.createElement("td");
     tdTags.className = "tags";
-    if (cp.meetup) tdTags.innerHTML += `<span class="tag t-meetup">MEET-UP</span>`;
+    const isTeamOnly = /Team [Ee]xchange ONLY|Team runner exchange ONLY/.test(cp.loc);
+    if (cp.passoff && isTeamOnly) tdTags.innerHTML += `<span class="tag t-team">TEAM</span>`;
+    else if (cp.passoff)          tdTags.innerHTML += `<span class="tag t-meetup">PASS-OFF</span>`;
+    else if (cp.meetup)           tdTags.innerHTML += `<span class="tag t-info">CREW ONLY</span>`;
     if (cp.timing) tdTags.innerHTML += `<span class="tag t-timing">TIMING</span>`;
     if (cp.cross)  tdTags.innerHTML += `<span class="tag t-cross">CROSS</span>`;
     tr.appendChild(tdTags);
@@ -414,8 +426,8 @@ function render() {
 
   // stats
   document.getElementById("stats").innerHTML = `
-    <span class="pill"><span class="swatch" style="background:#94a3b8"></span>${doneCount}/${CHECKPOINTS.length} checked</span>
-    <span class="pill"><span class="swatch" style="background:#3b82f6"></span>${meetupCount} meet-ups</span>
+    <span class="pill"><span class="swatch" style="background:#3b82f6"></span>${passoffAssigned}/${passoffCount} pass-offs assigned</span>
+    <span class="pill"><span class="swatch" style="background:#94a3b8"></span>${passoffDone}/${passoffCount} done</span>
     <span class="pill"><span class="swatch" style="background:var(--jacob)"></span>Jacob: ${runnerCounts.Jacob}</span>
     <span class="pill"><span class="swatch" style="background:var(--josh)"></span>Josh: ${runnerCounts.Josh}</span>
     <span class="pill"><span class="swatch" style="background:var(--aaron)"></span>Aaron: ${runnerCounts.Aaron}</span>
