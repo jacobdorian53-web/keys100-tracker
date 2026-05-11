@@ -121,6 +121,22 @@
   .tag.t-cross  { background: #dc2626; color: white; }
   .tag.t-team   { background: #14b8a6; color: white; }
   .tag.t-info   { background: #475569; color: white; }
+  .sync-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+  }
+  .sync-status.ok      { color: #4ade80; border-color: #166534; }
+  .sync-status.warn    { color: #fbbf24; border-color: #854d0e; }
+  .sync-status.err     { color: #f87171; border-color: #7f1d1d; }
+  .sync-status.pending { color: #93c5fd; border-color: #1e40af; }
+  button.primary { background: #2563eb !important; color: white; border-color: #1e40af !important; }
+  button.primary:hover { background: #1d4ed8 !important; }
   td.cb-cell { width: 40px; text-align: center; }
   td.cb-cell input { width: 18px; height: 18px; cursor: pointer; }
   td.runner-cell { width: 130px; }
@@ -161,6 +177,10 @@
 </header>
 
 <div class="controls">
+  <button id="saveCloud" class="primary">💾 Save to cloud</button>
+  <button id="reloadCloud">↻ Reload</button>
+  <span id="syncStatus" class="sync-status">…</span>
+  <button id="setToken" title="Set / clear GitHub token">🔑</button>
   <button id="clearChecks">Clear all checks</button>
   <button id="clearRunners">Clear all runners</button>
   <button id="exportJson">Export JSON</button>
@@ -204,7 +224,7 @@
   <span class="tag t-timing">TIMING</span> Timing mat ·
   <span class="tag t-cross">CROSS</span> Highway crossing ·
   <span class="tag t-info">CREW ONLY</span> Crew support only — not a runner exchange ·
-  State auto-saves to your browser (localStorage). Default view shows only the 39 pass-off spots — use the filter to see full course details.
+  Data syncs from <code>data.json</code> in the GitHub repo. Click <strong>💾 Save to cloud</strong> after making changes — anyone with the link sees the latest version. Default view shows only the 39 pass-off spots. Click 🔑 to set your GitHub token (needed to save).
 </div>
 
 <script>
@@ -316,15 +336,123 @@ const CHECKPOINTS = [
 
 const RUNNERS = ["", "Jacob", "Josh", "Aaron", "Darby"];
 const STORE_KEY = "keys100_2026_state_v1";
+const TOKEN_KEY = "keys100_gh_token_v1";
+const REPO_OWNER = "jacobdorian53-web";
+const REPO_NAME  = "keys100-tracker";
+const DATA_PATH  = "data.json";
+const DATA_BRANCH = "main";
 
-function loadState() {
+let state = {};        // { [idx]: { done: bool, runner: string } }
+let remoteSha = null;  // sha of data.json for safe writes
+let dirty = false;     // unsaved local changes
+let lastSyncedAt = null;
+
+function loadLocal() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
 }
-function saveState(s) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(s));
+function saveLocal(s) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch {}
+}
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
+function setToken(t) {
+  if (t) localStorage.setItem(TOKEN_KEY, t);
+  else localStorage.removeItem(TOKEN_KEY);
 }
 
-let state = loadState(); // { [idx]: { done: bool, runner: string } }
+function setSyncStatus(msg, kind) {
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "sync-status " + (kind || "");
+}
+
+// b64 helpers that handle UTF-8 cleanly
+function b64encode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64decode(str) {
+  return decodeURIComponent(escape(atob(str.replace(/\s/g, ""))));
+}
+
+async function fetchRemote() {
+  setSyncStatus("Loading from GitHub…", "pending");
+  try {
+    // Use raw.githubusercontent.com (cached) for public reads + API for sha
+    const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}?ref=${DATA_BRANCH}&t=${Date.now()}`;
+    const headers = { "Accept": "application/vnd.github+json" };
+    const tok = getToken();
+    if (tok) headers["Authorization"] = "Bearer " + tok;
+    const r = await fetch(apiUrl, { headers, cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    remoteSha = j.sha;
+    const text = b64decode(j.content);
+    const data = JSON.parse(text);
+    state = data.assignments || {};
+    lastSyncedAt = data.updated || null;
+    saveLocal(state);
+    dirty = false;
+    setSyncStatus("Synced" + (lastSyncedAt ? " · last update " + new Date(lastSyncedAt).toLocaleString() : ""), "ok");
+    render();
+  } catch (e) {
+    // Fall back to local
+    state = loadLocal();
+    setSyncStatus("Offline / using local copy (" + e.message + ")", "warn");
+    render();
+  }
+}
+
+async function pushRemote() {
+  const tok = getToken();
+  if (!tok) {
+    const t = prompt("Paste a GitHub personal access token with 'public_repo' (or 'contents:write') scope.\n\nIt's saved only in your browser and never leaves this device except to talk to github.com.");
+    if (!t) return;
+    setToken(t.trim());
+  }
+  setSyncStatus("Saving to GitHub…", "pending");
+  try {
+    if (!remoteSha) {
+      // refresh sha first
+      const r0 = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
+        headers: { "Accept": "application/vnd.github+json", "Authorization": "Bearer " + getToken() }, cache: "no-store"
+      });
+      if (r0.ok) remoteSha = (await r0.json()).sha;
+    }
+    const payload = {
+      version: 1,
+      updated: new Date().toISOString(),
+      assignments: state
+    };
+    const body = {
+      message: "Update assignments (" + new Date().toISOString() + ")",
+      content: b64encode(JSON.stringify(payload, null, 2) + "\n"),
+      branch: DATA_BRANCH,
+      sha: remoteSha
+    };
+    const r = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}`, {
+      method: "PUT",
+      headers: { "Accept": "application/vnd.github+json", "Authorization": "Bearer " + getToken(), "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const errTxt = await r.text();
+      throw new Error("HTTP " + r.status + " — " + errTxt.slice(0, 140));
+    }
+    const j = await r.json();
+    remoteSha = j.content.sha;
+    lastSyncedAt = payload.updated;
+    dirty = false;
+    setSyncStatus("Saved · " + new Date(lastSyncedAt).toLocaleTimeString(), "ok");
+  } catch (e) {
+    setSyncStatus("Save failed: " + e.message, "err");
+  }
+}
+
+function markDirty() {
+  dirty = true;
+  saveLocal(state);
+  setSyncStatus("Unsaved changes — click Save", "warn");
+}
 
 function render() {
   const tbody = document.getElementById("tbody");
@@ -366,7 +494,7 @@ function render() {
     cb.checked = !!s.done;
     cb.addEventListener("change", () => {
       state[i] = { ...(state[i]||{}), done: cb.checked };
-      saveState(state);
+      markDirty();
       render();
     });
     tdCb.appendChild(cb);
@@ -415,7 +543,7 @@ function render() {
     sel.className = s.runner ? `r-${s.runner}` : "";
     sel.addEventListener("change", () => {
       state[i] = { ...(state[i]||{}), runner: sel.value };
-      saveState(state);
+      markDirty();
       render();
     });
     tdRun.appendChild(sel);
@@ -438,12 +566,12 @@ function render() {
 document.getElementById("clearChecks").addEventListener("click", () => {
   if (!confirm("Clear all checkboxes? (Runner assignments will be kept.)")) return;
   Object.keys(state).forEach(k => { if (state[k]) state[k].done = false; });
-  saveState(state); render();
+  markDirty(); render();
 });
 document.getElementById("clearRunners").addEventListener("click", () => {
   if (!confirm("Clear all runner assignments? (Checkboxes will be kept.)")) return;
   Object.keys(state).forEach(k => { if (state[k]) state[k].runner = ""; });
-  saveState(state); render();
+  markDirty(); render();
 });
 document.getElementById("exportJson").addEventListener("click", () => {
   const out = CHECKPOINTS.map((cp, i) => ({ ...cp, ...(state[i]||{}) }));
@@ -456,7 +584,31 @@ document.getElementById("exportJson").addEventListener("click", () => {
 document.getElementById("filterRunner").addEventListener("change", render);
 document.getElementById("filterType").addEventListener("change", render);
 
+document.getElementById("saveCloud").addEventListener("click", pushRemote);
+document.getElementById("reloadCloud").addEventListener("click", async () => {
+  if (dirty && !confirm("You have unsaved local changes. Reload from cloud anyway? (Your unsaved edits will be lost.)")) return;
+  await fetchRemote();
+});
+document.getElementById("setToken").addEventListener("click", () => {
+  const cur = getToken();
+  const msg = cur
+    ? "Token is set (" + cur.slice(0, 7) + "…). Enter a new one to replace, or leave blank and click OK to CLEAR it."
+    : "Paste a GitHub personal access token with 'public_repo' (classic) or 'contents:write' (fine-grained) scope on the keys100-tracker repo.";
+  const t = prompt(msg, "");
+  if (t === null) return; // cancelled
+  setToken(t.trim());
+  setSyncStatus(t.trim() ? "Token saved" : "Token cleared", "ok");
+});
+
+// Periodic refresh: poll every 60s if no unsaved edits
+setInterval(() => {
+  if (!dirty && document.visibilityState === "visible") fetchRemote();
+}, 60000);
+
+// Boot: pull remote, render
+state = loadLocal(); // show something immediately
 render();
+fetchRemote();
 </script>
 </body>
 </html>
