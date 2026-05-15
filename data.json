@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-05-15T21:08:48.354Z",
+  "updated": "2026-05-15T21:09:38.654Z",
   "assignments": {
     "0": {
       "runner": "Aaron",
@@ -29,6 +29,12 @@
     "16": {
       "runner": "Jacob",
       "done": false
+    },
+    "32": {
+      "runner": "Darby"
+    },
+    "38": {
+      "runner": "Darby"
     }
   }
 }
